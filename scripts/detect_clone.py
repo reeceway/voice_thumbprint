@@ -26,23 +26,41 @@ def main():
     features = thumbprint.extract(audio)
     
     # Detect
-    detector = RuleBasedDetector()
-    result = detector.detect(features['features'])
+    if args.layer == 2:
+        from detection.classifier import VoiceClassifier
+        # Try to load model
+        model_path = 'models/detector_l2.pkl'
+        if not Path(model_path).exists():
+            print(f"Error: Layer 2 model not found at {model_path}")
+            print("Run scripts/train_detector.py first.")
+            sys.exit(1)
+            
+        clf = VoiceClassifier()
+        clf.load(model_path)
+        result = clf.predict(features['features'])
+        explanation = f"Layer 2 ({clf.model_type}) prediction"
+    else:
+        detector = RuleBasedDetector()
+        result = detector.detect(features['features'])
+        explanation = result['explanation']
     
     # Output
-    print(f"\n🔍 CLONE DETECTION RESULT")
+    print(f"\n🔍 CLONE DETECTION RESULT (Layer {args.layer})")
     print(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     print(f"Verdict: {result['verdict']}")
     print(f"Confidence: {result['confidence']:.1%}")
+    if 'spoof_probability' in result:
+        print(f"Spoof Prob: {result['spoof_probability']:.1%}")
     
     if args.verbose:
-        print(f"\nArtifact Analysis:")
-        for artifact, value in result['artifacts'].items():
-            status = "⚠️ " if value > 0.5 else "✓"
-            print(f"  {status} {artifact}: {value:.2f}")
+        if args.layer == 1:
+            print(f"\nArtifact Analysis:")
+            for artifact, value in result['artifacts'].items():
+                status = "⚠️ " if value > 0.5 else "✓"
+                print(f"  {status} {artifact}: {value:.2f}")
         
         print(f"\nExplanation:")
-        print(f"  {result['explanation']}")
+        print(f"  {explanation}")
 
 
 if __name__ == '__main__':

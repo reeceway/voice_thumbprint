@@ -36,14 +36,49 @@ def main():
         print(f"Found {len(audio_files)} audio files")
     
     # Create thumbprint generator
-    thumbprint = VoiceThumbprint(layer=args.layer)
+    thumbprint_gen = VoiceThumbprint(layer=args.layer)
     
-    # Enroll
-    print(f"Extracting thumbprint from {len(audio_files)} sample(s)...")
-    enrolled = thumbprint.enroll(audio_files)
+    # Layer 3: Neural Embedding
+    if args.layer == 3:
+        from verification.neural_embed import NeuralEmbedder
+        embedder = NeuralEmbedder()
+        print(f"Extracting neural embeddings from {len(audio_files)} sample(s)...")
+        
+        vectors = []
+        for f in audio_files:
+            try:
+                emb = embedder.embed(f)
+                vectors.append(emb)
+            except Exception as e:
+                print(f"Skipping {f}: {e}")
+                
+        if not vectors:
+            print("No valid embeddings extracted.")
+            sys.exit(1)
+            
+        # Mean embedding
+        mean_vector = np.mean(np.stack(vectors), axis=0) # Already normalized by model usually, but let's see
+        # L2 norm
+        mean_vector = mean_vector / (np.linalg.norm(mean_vector) + 1e-10)
+        
+        enrolled = {
+            'vector': mean_vector,
+            'n_samples': len(vectors),
+            'layer': 3,
+            'model': 'ecapa_tdnn'
+        }
+    
+    # Layer 2: GMM-UBM or Thumbprint
+    # (Note: For GMM verification, we technically need to Enroll the user model.
+    #  But to keep enrollment simple, we'll stick to Mean Vectors for now, 
+    #  or we can implement GMM enrollment here. Given typical fast enrollment, mean vector is easier.
+    #  Let's stick to thumbprint extraction for consistency with args.layer=2 stats)
+    else:
+        print(f"Extracting thumbprint from {len(audio_files)} sample(s)...")
+        enrolled = thumbprint_gen.enroll(audio_files)
     
     # Save
-    thumbprint.save(enrolled, args.output)
+    thumbprint_gen.save(enrolled, args.output)
     
     print(f"\n✅ Enrolled successfully!")
     print(f"   Samples: {enrolled['n_samples']}")

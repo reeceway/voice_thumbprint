@@ -148,6 +148,62 @@ def extract_energy_dynamics(audio_sr: Dict) -> Dict[str, float]:
     }
 
 
+def extract_modulation_spectrum(audio_sr: Dict) -> Dict[str, float]:
+    """Modulation spectrum features.
+    
+    Natural speech has strong modulation at syllable rate (~3-5Hz).
+    Synthetic speech often deviates.
+    """
+    audio = audio_sr['audio']
+    sr = audio_sr['sr']
+    
+    # Compute amplitude envelope (Hilbert transform)
+    from scipy.signal import hilbert
+    analytic_signal = hilbert(audio)
+    amplitude_envelope = np.abs(analytic_signal)
+    
+    # Downsample envelope to focus on low frequencies
+    # Target 100Hz is enough for modulation range of interest
+    target_sr = 100
+    if sr > target_sr:
+        decimation = int(sr / target_sr)
+        envelope_ds = amplitude_envelope[::decimation]
+        sr_ds = sr / decimation
+    else:
+        envelope_ds = amplitude_envelope
+        sr_ds = sr
+        
+    # Remove DC
+    envelope_ds = envelope_ds - np.mean(envelope_ds)
+    
+    # FFT of envelope
+    n_fft = 2048  # High resolution for low freqs
+    if len(envelope_ds) < n_fft:
+        n_fft = len(envelope_ds)
+        
+    if n_fft == 0:
+        return {'modulation_3_5hz_ratio': 0, 'modulation_peak_freq': 0}
+        
+    fft_env = np.abs(np.fft.rfft(envelope_ds, n=n_fft))
+    freqs = np.fft.rfftfreq(n_fft, d=1/sr_ds)
+    
+    # Calculate energy in 3-5Hz band vs total
+    # Skip DC (index 0)
+    total_energy = np.sum(fft_env[1:]**2) + 1e-10
+    
+    mask_3_5 = (freqs >= 3.0) & (freqs <= 5.0)
+    energy_3_5 = np.sum(fft_env[mask_3_5]**2)
+    
+    # Find peak modulation frequency
+    peak_idx = np.argmax(fft_env[1:]) + 1
+    peak_freq = freqs[peak_idx]
+    
+    return {
+        'modulation_3_5hz_ratio': energy_3_5 / total_energy,
+        'modulation_peak_freq': peak_freq
+    }
+
+
 def extract_all_artifact_features(audio_sr: Dict) -> Dict[str, float]:
     """Extract all artifact features for clone detection."""
     features = {}
@@ -156,5 +212,6 @@ def extract_all_artifact_features(audio_sr: Dict) -> Dict[str, float]:
     features.update(extract_subband_energy_ratios(audio_sr))
     features.update(extract_hnr(audio_sr))
     features.update(extract_energy_dynamics(audio_sr))
+    features.update(extract_modulation_spectrum(audio_sr))
     
     return features

@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.DS_Store
+*.npz
+models/
+results.csv
+*.zip
+*.flac
+*.wav
+# Keep gitkeep files if any exists in data/ but ignore content
+data/*
+!data/download.sh

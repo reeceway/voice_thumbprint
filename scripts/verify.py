@@ -21,19 +21,43 @@ def main():
     args = parser.parse_args()
     
     # Load enrolled thumbprint
-    thumbprint = VoiceThumbprint()
-    enrolled = thumbprint.load(args.enrolled)
+    thumbprint_gen = VoiceThumbprint()
+    enrolled = thumbprint_gen.load(args.enrolled)
+    layer = enrolled.get('layer', 2)
     
-    # Extract test thumbprint
-    test_audio = load_audio(args.test)
-    test_thumb = thumbprint.extract(test_audio)
+    # Extract test thumbprint/embedding
+    if layer == 3:
+        from verification.neural_embed import NeuralEmbedder
+        embedder = NeuralEmbedder()
+        test_vector = embedder.embed(args.test)
+        # Normalize
+        test_vector = test_vector / (np.linalg.norm(test_vector) + 1e-10)
+        enrolled_vector = enrolled['vector']
+        duration = 0 # Neural embedder doesn't return duration comfortably here
+        
+        # Neural threshold is different (usually higher for cosine)
+        # ECAPA cosine similarity: Match > 0.25 (approx EER point for raw cosine)
+        # Let's override interpret function for Layer 3
+    else:
+        test_audio = load_audio(args.test)
+        test_thumb = thumbprint_gen.extract(test_audio)
+        test_vector = test_thumb['vector']
+        enrolled_vector = enrolled['vector']
+        duration = test_thumb['duration']
     
     # Compare
-    similarity = cosine_similarity(enrolled['vector'], test_thumb['vector'])
-    verdict = interpret_similarity(similarity)
+    similarity = cosine_similarity(enrolled_vector, test_vector)
+    
+    if layer == 3:
+        # ECAPA-TDNN thresholds (approximate)
+        if similarity > 0.35: verdict = "MATCH"
+        elif similarity < 0.20: verdict = "MISMATCH"
+        else: verdict = "UNCERTAIN"
+    else:
+        verdict = interpret_similarity(similarity)
     
     # Output
-    print(f"\n🎯 VERIFICATION RESULT")
+    print(f"\n🎯 VERIFICATION RESULT (Layer {layer})")
     print(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     print(f"Similarity: {similarity:.3f}")
     print(f"Verdict: {verdict}")
