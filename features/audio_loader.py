@@ -162,3 +162,27 @@ def preprocess_audio(
         audio = normalize_audio(audio)
     
     return audio
+
+
+def list_audio_files(directory: str, extensions: list = None) -> list:
+    """List all audio files in directory.
+    
+    Args:
+        directory: Directory to search
+        extensions: List of file extensions (default: .wav, .mp3, .m4a, .flac)
+        
+    Returns:
+        List of file paths
+    """
+    from pathlib import Path
+    
+    if extensions is None:
+        extensions = ['.wav', '.mp3', '.m4a', '.flac', '.ogg']
+    
+    path = Path(directory)
+    files = []
+    for ext in extensions:
+        files.extend(path.glob(f'*{ext}'))
+        files.extend(path.glob(f'*{ext.upper()}'))
+    
+    return sorted([str(f) for f in files])

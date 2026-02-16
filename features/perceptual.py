@@ -250,24 +250,20 @@ def extract_speaking_rate_features(
     return features
 
 
-def extract_all_perceptual_features(
-    audio: np.ndarray,
-    sr: int = 16000,
-    config=None
-) -> Dict[str, float]:
-    """Extract all perceptual features.
+def extract_perceptual_features(audio_sr: dict) -> Dict[str, float]:
+    """Extract all perceptual features from audio dict.
     
     Args:
-        audio: Audio signal
-        sr: Sample rate
-        config: Configuration object (optional)
+        audio_sr: Dict with 'audio' and 'sr' keys
         
     Returns:
         Combined dictionary of all perceptual features
     """
-    if config is None:
-        from config import Config
-        config = Config()
+    from config import Config
+    config = Config()
+    
+    audio = audio_sr['audio']
+    sr = audio_sr['sr']
     
     features = {}
     
