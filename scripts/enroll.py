@@ -3,6 +3,7 @@
 
 import argparse
 import sys
+import numpy as np
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -64,6 +65,7 @@ def main():
         enrolled = {
             'vector': mean_vector,
             'n_samples': len(vectors),
+            'feature_names': [f'ecapa_{i}' for i in range(len(mean_vector))],
             'layer': 3,
             'model': 'ecapa_tdnn'
         }

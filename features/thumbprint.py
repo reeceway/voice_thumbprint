@@ -6,7 +6,7 @@ import json
 
 from .perceptual import extract_perceptual_features
 from .spectral import extract_mfcc, extract_lfcc, extract_spectral_stats
-from .artifacts import extract_artifact_features
+from .artifacts import extract_all_artifact_features
 
 
 class VoiceThumbprint:
@@ -30,7 +30,7 @@ class VoiceThumbprint:
         # Layer 1: Signal processing (always included)
         perceptual = extract_perceptual_features(audio_sr)
         spectral = extract_spectral_stats(audio_sr)
-        artifacts = extract_artifact_features(audio_sr)
+        artifacts = extract_all_artifact_features(audio_sr)
         
         features.update(perceptual)
         features.update(spectral)
@@ -49,6 +49,9 @@ class VoiceThumbprint:
         norm = np.linalg.norm(vector)
         if norm > 0:
             vector = vector / norm
+        
+        # Replace any NaN or Inf values
+        vector = np.nan_to_num(vector, nan=0.0, posinf=0.0, neginf=0.0)
         
         return {
             'vector': vector,

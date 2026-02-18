@@ -3,6 +3,7 @@
 
 import argparse
 import sys
+import numpy as np
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -65,7 +66,8 @@ def main():
     if args.verbose:
         print(f"\nDetails:")
         print(f"  Enrolled features: {len(enrolled['vector'])}")
-        print(f"  Test duration: {test_thumb['duration']:.2f}s")
+        if layer != 3:
+            print(f"  Test duration: {test_thumb['duration']:.2f}s")
         
         if verdict == "MATCH":
             print(f"\n✅ Same speaker detected")

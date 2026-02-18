@@ -53,18 +53,33 @@ def extract_lfcc(audio_sr: Dict) -> Dict[str, float]:
     audio = audio_sr['audio']
     sr = audio_sr['sr']
     
-    # Linear filterbank
+    # Linear filterbank - create manually since librosa.filters.chirp doesn't exist
     n_fft = 512
-    linear_fb = librosa.filters.chirp(
-        sr=sr,
-        n_fft=n_fft,
-        fmin=0,
-        fmax=sr/2,
-        n_bins=80
-    )
     
-    # Compute spectrogram
+    # Compute spectrogram first
     S = np.abs(librosa.stft(audio, n_fft=n_fft, hop_length=160, win_length=400))
+    
+    # Create linear filterbank manually
+    n_bins = 80
+    freq_bins = np.linspace(0, sr/2, n_fft//2 + 1)
+    center_freqs = np.linspace(0, sr/2, n_bins + 2)[1:-1]  # Exclude endpoints
+    
+    linear_fb = np.zeros((n_bins, len(freq_bins)))
+    for i in range(n_bins):
+        # Triangular filter
+        left = center_freqs[max(0, i-1)] if i > 0 else 0
+        center = center_freqs[i]
+        right = center_freqs[min(n_bins-1, i+1)] if i < n_bins-1 else sr/2
+        
+        # Rising slope
+        rising = (freq_bins - left) / (center - left + 1e-10)
+        rising = np.clip(rising, 0, 1)
+        
+        # Falling slope  
+        falling = (right - freq_bins) / (right - center + 1e-10)
+        falling = np.clip(falling, 0, 1)
+        
+        linear_fb[i] = np.minimum(rising, falling)
     
     # Apply linear filterbank
     linear_spec = np.dot(linear_fb, S)

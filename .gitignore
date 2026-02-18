@@ -10,3 +10,4 @@ results.csv
 # Keep gitkeep files if any exists in data/ but ignore content
 data/*
 !data/download.sh
+

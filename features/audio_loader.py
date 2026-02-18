@@ -6,20 +6,19 @@ from pathlib import Path
 from typing import Tuple, Optional
 
 
-def load_audio(path: str, target_sr: int = 16000, mono: bool = True) -> Tuple[np.ndarray, int]:
+def load_audio(path: str, target_sr: int = 16000, mono: bool = True) -> dict:
     """Load audio file and resample to target sample rate.
-    
+
     Args:
         path: Path to audio file
         target_sr: Target sample rate
         mono: Convert to mono if True
-        
+
     Returns:
-        audio: Audio signal array
-        sr: Sample rate (target_sr)
+        Dict with 'audio' (np.ndarray) and 'sr' (int) keys
     """
     audio, sr = librosa.load(path, sr=target_sr, mono=mono)
-    return audio, sr
+    return {'audio': audio, 'sr': sr}
 
 
 def save_audio(audio: np.ndarray, path: str, sr: int = 16000):

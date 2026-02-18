@@ -24,7 +24,6 @@ class VoiceClassifier:
                 max_depth=5,
                 learning_rate=0.1,
                 eval_metric='logloss',
-                use_label_encoder=False
             )
         elif model_type == 'svm':
             self.model = Pipeline([
